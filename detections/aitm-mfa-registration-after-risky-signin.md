@@ -81,6 +81,7 @@ RiskySignins
 
 9. Testing plan
 
-- [ ] Run the test file against synthetic data (see `tests/aitm-mfa-registration-test.kql`)
-- [ ] Record results and screenshot to `evidence/`
-- [ ] Update **Status** from "Draft" to "Tested on synthetic data"
+- [x] Run the test file against synthetic data (see `tests/aitm-mfa-registration-test.kql`)
+- [x] Record results and screenshot to `evidence/`
+- [x] Tested on synthetic data (Azure Data Explorer free cluster)
+- [x] [Test result: only bob@contoso.test is flagged](evidence/aitm-mfa-registration-result.png)
