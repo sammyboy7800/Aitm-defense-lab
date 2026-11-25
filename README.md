@@ -1,8 +1,8 @@
 # 🛡️ AiTM Defense Lab
 
-> Detecting and preventing Adversary-in-the-Middle (AiTM) phishing attacks
+Detecting and preventing Adversary-in-the-Middle (AiTM) phishing attacks
+About 
 
-About Me
 Hi, I am Samson Oragbon, an aspiring IT/security professional. This project
 documents my hands-on work understanding, detecting, and mitigating
 AiTM phishing, which steals session cookies and can bypass standard MFA.
