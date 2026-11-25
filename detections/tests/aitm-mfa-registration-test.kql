@@ -1,0 +1,54 @@
+// TEST: MFA method registered after a risky sign-in
+  // Environment: Azure Data Explorer free cluster
+  // Data: fully synthetic (documentation IP ranges, .test domains)
+  // EXPECTED RESULT: only bob@contoso.test is returned.
+  let SigninLogs = datatable(
+      TimeGenerated: datetime,
+      UserPrincipalName: string,
+      IPAddress: string,
+      ResultType: string,
+      RiskLevelDuringSignIn: string
+  )
+  [
+      datetime(2026-11-24 09:00:00), "alice@contoso.test", "203.0.113.10",  "0", "none",
+      datetime(2026-11-24 10:00:00), "bob@contoso.test",   "192.0.2.99",    "0", "high",
+      datetime(2026-11-24 11:00:00), "carol@contoso.test", "192.0.2.77",    "0", "medium",
+      datetime(2026-11-24 12:00:00), "dave@contoso.test",  "198.51.100.30", "0", "high"
+  ];
+  let AuditLogs = datatable(
+      TimeGenerated: datetime,
+      OperationName: string,
+      Result: string,
+      InitiatedBy: dynamic
+  )
+  [
+      datetime(2026-11-24 09:10:00), "User registered security info", "success", dynamic({"user":{"userPrincipalName":"alice@contoso.test","ipAddress":"203.0.113.10"}}),
+      datetime(2026-11-24 10:20:00), "User registered security info", "success", dynamic({"user":{"userPrincipalName":"bob@contoso.test","ipAddress":"192.0.2.99"}}),
+      datetime(2026-11-24 14:00:00), "User registered security info", "success", dynamic({"user":{"userPrincipalName":"carol@contoso.test","ipAddress":"192.0.2.77"}})
+  ];
+  // ---------------- Detection query under test ----------------
+  let lookback = 1h;
+  let RiskySignins = SigninLogs
+      | where ResultType == "0"
+      | where RiskLevelDuringSignIn in ("medium", "high")
+      | project SigninTime = TimeGenerated,
+                UserKey = tolower(UserPrincipalName),
+                SigninIP = IPAddress,
+                RiskLevelDuringSignIn;
+  let MfaChanges = AuditLogs
+      | where OperationName == "User registered security info"
+      | where Result == "success"
+      | project ChangeTime = TimeGenerated,
+                UserKey = tolower(tostring(InitiatedBy.user.userPrincipalName)),
+                ChangeIP = tostring(InitiatedBy.user.ipAddress);
+  RiskySignins
+  | join kind=inner MfaChanges on UserKey
+  | where ChangeTime between (SigninTime .. (SigninTime + lookback))
+  | project UserKey, SigninTime, SigninIP, RiskLevelDuringSignIn, ChangeTime, ChangeIP
+  | order by ChangeTime desc
+
+  // Test cases:
+  //  alice : normal sign-in (risk none) + MFA registered      -> NOT flagged
+  //  bob   : high-risk sign-in, MFA registered 20 min later    -> FLAGGED
+  //  carol : medium-risk sign-in, MFA registered 3 hours later -> NOT flagged (outside 1h window)
+  //  dave  : high-risk sign-in, no MFA registration            -> NOT flagged
