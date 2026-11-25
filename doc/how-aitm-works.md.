@@ -1,0 +1,97 @@
+How Adversary-in-the-Middle (AiTM) Phishing Works
+
+Purpose: A plain-English explanation of AiTM phishing, written from a defender's point of view. This document describes the attack at a conceptual level only.
+
+1. What is AiTM phishing?
+
+**Adversary-in-the-Middle (AiTM)** phishing is an attack where the criminal places a fake website *between* the victim and the real login page. The victim thinks they are signing in normally. In reality, every keystroke and every response passes through the attacker's server first.
+
+Because the victim really does log in to the real service, the attacker doesn't just steal a password. They also steal the **session cookie** that proves the login succeeded, including after MFA was completed.
+
+**Key idea:** The attacker doesn't break MFA. They wait until the victim completes it, then take the "proof of login" that results.
+
+2. Terms in plain English
+
+| Term | Meaning |
+| Reverse proxy | A server that sits in the middle and forwards traffic between two parties. Legitimate uses exist (load balancers, CDNs). Attackers abuse the same idea. |
+| Session cookie / token | A small piece of data the website gives your browser after you log in. It says "this person already proved who they are," so you don't have to sign in on every click. |
+| MFA | Multi-factor authentication: a second proof of identity such as an app prompt, SMS code, or one-time code. |
+| Phishing-resistant MFA | MFA methods (FIDO2 security keys, passkeys) that are cryptographically tied to the real website, so they won't work on a fake one. |
+
+3. How the attack works, step by step
+
+1. The lure. The victim receives a convincing email, text, or chat message: a shared document, an invoice, a voicemail notification, an urgent security alert. It contains a link.
+2. The click. The victim clicks and lands on a page that looks exactly like their real Microsoft, Google, or company login page. The page is actually served by the attacker's proxy.
+3. The relay. When the victim types their username and password, the proxy forwards them to the **real** login service in real time. The real service responds, and the proxy passes that response back to the victim.
+4. The MFA step. The real service asks for the second factor. The proxy relays that prompt to the victim too. The victim approves it or types the code, and the proxy forwards it. From the victim's point of view, everything worked normally.
+5. The cookie theft. Once the login succeeds, the real service issues a **session cookie**. It passes through the attacker's proxy on its way to the victim, and the attacker keeps a copy.
+6. The takeover. The attacker imports that cookie into their own browser. The service sees a valid, already-authenticated session, so it doesn't ask for a password or MFA again.
+7. The follow-up. With access to the mailbox or account, attackers commonly read email, search for financial or sensitive information, create hidden inbox rules, register their own MFA method to keep access, and send further phishing from the compromised account (sometimes aimed at fraudulent payments, known as business email compromise).
+
+Diagram
+sequenceDiagram
+    participant V as Victim
+    participant P as Attacker's proxy (fake login page)
+    participant S as Real service (e.g. Microsoft 365)
+    participant A as Attacker
+
+    V->>P: Clicks phishing link, opens fake login page
+    V->>P: Enters username and password
+    P->>S: Forwards credentials
+    S-->>P: Requests MFA
+    P-->>V: Shows MFA prompt
+    V->>P: Approves MFA / enters code
+    P->>S: Forwards MFA response
+    S-->>P: Login success + session cookie
+    P-->>V: Passes the user into the real service
+    P->>A: Attacker keeps a copy of the session cookie
+    A->>S: Replays cookie from a different device and location
+    S-->>A: Treats it as the logged-in victim
+
+4. Why MFA alone doesn't stop it
+
+Traditional MFA (SMS codes, authenticator-app codes, push approvals) proves that **the person typing is you**, but it doesn't prove **which website they are typing into**. In an AiTM attack the victim completes MFA correctly, just on the wrong site, and the relay makes that look valid to the real service.
+
+The attacker also never needs to guess or crack anything. They use the legitimate, freshly issued session.
+
+Important: This does not mean MFA is useless. MFA still blocks the vast majority of simple password-theft attacks. AiTM is a more advanced technique, and the fix is *stronger* MFA, not abandoning MFA.
+
+5. Real-world context
+AiTM is not theoretical. Microsoft Threat Intelligence publicly reported in 2022 a large-scale AiTM phishing campaign that targeted over 10,000 organizations, using session-cookie theft to follow up with business email compromise attempts. Reverse-proxy phishing toolkits are publicly available, which lowers the skill needed to run these attacks, and security vendors continue to report this technique as a common way of bypassing standard MFA.
+  
+6. How defenders can reduce the risk
+
+| Defense | How it helps |
+
+| Phishing-resistant MFA (FIDO2 security keys, passkeys, Windows Hello for Business) | Authentication is bound to the real website's domain, so it fails on a look-alike proxy page. This is the strongest control. |
+| Conditional Access policies | Require a compliant or managed device, block risky sign-ins, and restrict access by location or conditions. A stolen cookie replayed from an attacker's machine may fail these checks. |
+| Token protection / token binding | Ties a session token to the device it was issued to, so a copied token is much less useful elsewhere. |
+| Shorter session lifetimes and continuous access evaluation | Reduces how long a stolen session stays valuable. |
+| User awareness | Teach people to check the address bar, be wary of unexpected login prompts, and report suspicious messages. |
+| Email and URL filtering | Blocks or flags known phishing links and look-alike domains before users see them.
+
+7. How defenders can detect it
+Common warning signs in sign-in logs include:
+- The same session used from two different IPs, countries, or devices within a short time (token replay).
+- A successful sign-in followed shortly by a new MFA method registration or other security-info change.
+- New inbox rules that forward, delete, or hide messages right after a sign-in.
+- Sign-ins from unusual hosting providers or networks (ASNs), or with unfamiliar user agents.
+- Risky sign-in alerts from the identity provider that don't match the user's normal behavior.
+Detection queries for these are in the [`/detections`](../detections) folder of this repo.
+
+8. MITRE ATT&CK mapping
+| Technique | ID | Role in the attack |
+| Phishing: Spearphishing Link | [T1566.002](https://attack.mitre.org/techniques/T1566/002/) | The lure that sends the victim to the fake page |
+| Adversary-in-the-Middle | [T1557](https://attack.mitre.org/techniques/T1557/) | The proxy relaying traffic between victim and real service |
+| Steal Web Session Cookie | [T1539](https://attack.mitre.org/techniques/T1539/) | Capturing the session cookie after login |
+| Valid Accounts: Cloud Accounts | [T1078.004](https://attack.mitre.org/techniques/T1078/004/) | Using the stolen session to act as the victim |
+ 9. Key takeaways
+- AiTM steals the **session**, not just the password.
+- The victim completes MFA normally, which is why the attack is convincing.
+- **Phishing-resistant MFA** and **device-based Conditional Access** are the most effective defenses.
+- Good logging and detection can catch token replay even when prevention fails.
+ References
+
+- MITRE ATT&CK: [T1557 Adversary-in-the-Middle](https://attack.mitre.org/techniques/T1557/)
+- MITRE ATT&CK: [T1539 Steal Web Session Cookie](https://attack.mitre.org/techniques/T1539/)
+- Microsoft Threat Intelligence: *From cookie theft to BEC: Attackers use AiTM phishing sites as entry point to further financial fraud* (2022)
