@@ -22,7 +22,7 @@ Microsoft Entra ID · KQL · Azure Data Explorer · Microsoft Sentinel · MITRE 
 | [`/docs`](docs) | [How AiTM works](docs/how-aitm-works.md) | ✅ Done |
 | [`/detections`](detections) | [Session reuse](detections/aitm-session-reuse.md) · [MFA registration after risky sign-in](detections/aitm-mfa-registration-after-risky-signin.md) | ✅ Tested on synthetic data |
 | [`/hardening`](hardening) | [Hardening guide](hardening/aitm-hardening-guide.md) | 🟡 Documented, not yet built in a lab tenant |
-| [`/incident-response`](incident-response) | [IR playbook](incident-response/aitm-incident-response-playbook.md) | 🟡 Draft, not yet exercised |
+| [`/incident-response`](incident-response) | [IR playbook](incident-response/aitm-incident-response-playbook.md) | 🟡 Draft, Walked through once in a solo tabletop exercise (see tabletop-exercise-bob.md) |
 
  🔍 Key Findings
 - AiTM steals the **session**, not just the password, which is why standard MFA can be bypassed.
