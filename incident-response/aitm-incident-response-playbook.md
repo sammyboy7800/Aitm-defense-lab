@@ -1,10 +1,9 @@
 # Incident Response Playbook: Suspected AiTM Phishing Compromise
-
+|11-20-26 | Tabletop (Solo) |Samson Oragbon| Summary: Staff should be trained constantly to enable them to keep up with the constant changes in the technological advancement even with the current AI revolution, environment should be hardened and minimum best practice should be adhered to in every organization. 
 | Field | Detail |
-
 | **Scenario** | A user's Microsoft 365 / Entra ID account is suspected compromised through Adversary-in-the-Middle (AiTM) phishing and session token theft |
 | **Audience** | SOC analysts and IT administrators |
-| **Status** | Draft, based on general incident response practice. **Not yet exercised in a tabletop or real incident** |
+| **Status** | Draft, based on general incident response practice. Walked through once in a solo tabletop exercise (see tabletop-exercise-bob.md)
 | **Related** | [How AiTM works](../docs/how-aitm-works.md) · [Session reuse detection](../detections/aitm-session-reuse.md) · [MFA registration detection](../detections/aitm-mfa-registration-after-risky-signin.md) · [Hardening guide](../hardening/aitm-hardening-guide.md) |
 
 **Adapt before use.** Menu names, tools, and policies differ between organizations and change over time. Confirm each step against your current Microsoft documentation and your organization's incident response policy.
