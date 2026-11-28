@@ -1,18 +1,22 @@
-Hardening Guide: Reducing AiTM Phishing Risk in Microsoft Entra ID
+# Hardening Guide: Reducing AiTM Phishing Risk in Microsoft Entra ID
 
 | Field | Detail |
+|-------|--------|
 | **Scope** | Microsoft Entra ID (Microsoft 365) environments |
 | **Goal** | Make stolen passwords and stolen session tokens much less useful to an attacker |
 | **Status** | Documented from Microsoft's official guidance. **Not yet implemented in a lab tenant** |
 | **Related** | [How AiTM works](../docs/how-aitm-works.md) · [Session reuse detection](../detections/aitm-session-reuse.md) |
 
-**Verify before you deploy.** Microsoft changes feature availability, supported platforms, and license requirements often. Check the current Microsoft Learn documentation for each control below before relying on this guide.
+> **Verify before you deploy.** Microsoft changes feature availability, supported platforms, and license requirements often. Check the current Microsoft Learn documentation for each control below before relying on this guide.
 
-1. Defense in depth: the big picture
+---
+
+## 1. Defense in depth: the big picture
 
 No single control stops every AiTM attack. The strategy is to layer them so that one failure doesn't mean a compromise.
 
 | Layer | Control | What it stops |
+|-------|---------|---------------|
 | **Prevent** | Phishing-resistant MFA (passkeys / FIDO2 security keys) | The fake proxy page can't relay the login |
 | **Limit** | Conditional Access (compliant device, risk-based, location) | A stolen session replayed from an attacker's machine |
 | **Bind** | Token protection (where supported) | A stolen token replayed from a different device |
@@ -20,7 +24,9 @@ No single control stops every AiTM attack. The strategy is to layer them so that
 | **Detect** | Sign-in log monitoring and alerts | Attacks that slip past prevention |
 | **Respond** | Session revocation and an IR playbook | Time-to-containment |
 
-2. Control 1: Phishing-resistant MFA
+---
+
+## 2. Control 1: Phishing-resistant MFA
 
 **Why it works:** Passkeys and FIDO2 security keys are cryptographically bound to the real website's domain. On a look-alike proxy domain, the authenticator will not produce a valid response, so the relay fails. This is the strongest single defense against AiTM.
 
@@ -33,13 +39,16 @@ No single control stops every AiTM attack. The strategy is to layer them so that
 
 **Priority order for rollout:** administrators, then finance and executive staff, then everyone else.
 
-3. Control 2: Conditional Access policies
+---
+
+## 3. Control 2: Conditional Access policies
 
 Conditional Access evaluates signals (user, device, location, risk) and decides whether to allow, block, or require more proof. Check current Microsoft documentation for license requirements.
 
 **Policies worth building:**
 
 | Policy | Purpose |
+|--------|---------|
 | Require phishing-resistant authentication strength for admins | Protect the highest-value accounts first |
 | Require a compliant or Entra-joined device for Microsoft 365 apps | A replayed token from an unmanaged attacker machine fails the device check |
 | Block or step up on high sign-in risk | Uses identity-provider risk signals |
@@ -51,7 +60,9 @@ Conditional Access evaluates signals (user, device, location, risk) and decides 
 - **Keep at least two emergency (break-glass) accounts** excluded from policies, with strong unique credentials stored offline and alerts on any use.
 - Pilot with a small group, then expand.
 
-4. Control 3: Token protection
+---
+
+## 4. Control 3: Token protection
 
 **What it does:** Token protection (token binding) ties a sign-in session token to the device it was issued to, so a copied token fails when replayed from another machine.
 
@@ -64,13 +75,17 @@ Conditional Access evaluates signals (user, device, location, risk) and decides 
 
 **Deployment approach:** Create the policy in Report-only mode, collect interactive and non-interactive sign-in logs for long enough to cover normal usage, review which sign-ins would fail, and only then enforce.
 
-5. Control 4: Session lifetime and continuous access evaluation
+---
+
+## 5. Control 4: Session lifetime and continuous access evaluation
 
 - Reduce how long sessions persist for sensitive roles (sign-in frequency controls).
 - Keep **continuous access evaluation (CAE)** enabled so that critical events, such as account disablement or session revocation, take effect quickly instead of waiting for token expiry.
 - Review "keep me signed in" prompts and persistent browser session settings.
 
-6. Control 5: Detection and monitoring
+---
+
+## 6. Control 5: Detection and monitoring
 
 Prevention will sometimes fail, so detection is the safety net.
 
@@ -80,14 +95,18 @@ Prevention will sometimes fail, so detection is the safety net.
 - Alert on newly created inbox rules, especially those that forward, delete, or hide mail.
 - Monitor for sign-ins from unusual hosting providers (ASNs) and unfamiliar user agents.
 
-7. Control 6: Email security and user awareness
+---
+
+## 7. Control 6: Email security and user awareness
 
 - Use email filtering that detects malicious links, look-alike domains, and newly registered domains.
 - Run phishing awareness training that specifically covers **MFA-bypassing phishing**: "approving MFA doesn't mean the site is real."
 - Make reporting easy (a one-click report button) and respond quickly to what is reported.
 - Teach users to check the domain in the address bar before entering credentials.
 
-8. Quick-win checklist
+---
+
+## 8. Quick-win checklist
 
 - [ ] Phishing-resistant MFA enabled for administrators
 - [ ] Break-glass accounts created, excluded, monitored
@@ -96,29 +115,34 @@ Prevention will sometimes fail, so detection is the safety net.
 - [ ] Sign-in logs flowing to a SIEM
 - [ ] Session reuse detection deployed and tuned
 - [ ] Alerts for new MFA methods and inbox rules
-- [ ] Session revocation steps documented (see the IR playbook, planned)
+- [ ] Session revocation steps documented (see the IR playbook)
 
-9. MITRE ATT&CK mapping of controls
+---
+
+## 9. MITRE ATT&CK mapping of controls
 
 | Technique | Mitigation in this guide |
+|-----------|--------------------------|
 | [T1557 Adversary-in-the-Middle](https://attack.mitre.org/techniques/T1557/) | Phishing-resistant MFA, user training |
 | [T1539 Steal Web Session Cookie](https://attack.mitre.org/techniques/T1539/) | Token protection, compliant-device policies, short sessions |
 | [T1078.004 Valid Accounts: Cloud Accounts](https://attack.mitre.org/techniques/T1078/004/) | Conditional Access, risk-based controls, monitoring |
 
+---
 
-10. Lab implementation log (to complete)
+## 10. Lab implementation log (to complete)
 
 Use this section to record what you actually build and test, with screenshots in `/hardening/evidence`.
 
 | Control | Implemented? | Date | Evidence |
-
+|---------|--------------|------|----------|
 | Authentication strength policy | ☐ | | |
 | Compliant device policy (Report-only) | ☐ | | |
 | Legacy auth block | ☐ | | |
 | Token protection (Report-only) | ☐ | | |
 
+---
 
-References
+## References
 
 - Microsoft Learn: *Microsoft Entra Conditional Access: Token protection* (https://learn.microsoft.com/en-us/entra/identity/conditional-access/concept-token-protection)
 - Microsoft Learn: Conditional Access authentication strengths and passkey (FIDO2) documentation
@@ -126,4 +150,4 @@ References
 
 ---
 
-*Test all policy changes in a non-production environment first.*
+*Disclaimer: For defensive and educational purposes only. Test all policy changes in a non-production environment first.*
